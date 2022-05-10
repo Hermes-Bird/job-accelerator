@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  db:
+    container_name: 'db'
+    image: arm64v8/mysql:oracle
+    restart: always
+    volumes:
+      - dbdata:/var/lib/mysql
+    ports:
+      - '3306:3306'
+    environment:
+      MYSQL_ROOT_PASSWORD: 'root'
+
+  redis:
+    image: redis:alpine
+
+  elasticsearch:
+    container_name: 'elasticsearch'
+    image: elasticsearch:7.16.3
+    restart: always
+    environment:
+      - xpack.security.enabled=false
+      - discovery.type=single-node
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+    ports:
+      - '9200:9200'
+
+  kibana:
+    container_name: 'kibana'
+    image: kibana:7.16.3
+    restart: always
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    ports:
+      - '5601:5601'
+    depends_on:
+      - elasticsearch
+
+  server:
+    container_name: 'server'
+    build: './server'
+    depends_on:
+      - redis
+      - elasticsearch
+      - db
+    ports:
+      - '8080:8080'
+    environment:
+      - DB_PASSWORD=root
+      - DB_ADDRESS=db:3306
+      - REDIS_ADDR=redis:6379
+
+  web:
+    container_name: 'web'
+    build: './client'
+    depends_on:
+      - server
+    environment:
+      - ROOT_URL=http://server:8080/api
+volumes:
+  esdata:
+  dbdata:

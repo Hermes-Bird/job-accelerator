@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  elasticsearch:
+    container_name: 'elasticsearch'
+    image: elasticsearch:7.16.3
+    restart: always
+    environment:
+      - xpack.security.enabled=false
+      - discovery.type=single-node
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+    ports:
+      - '9200:9200'
+
+  kibana:
+    container_name: 'kibana'
+    image: kibana:7.16.3
+    restart: always
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    ports:
+      - '5601:5601'
+    depends_on:
+      - elasticsearch
+
+volumes:
+  esdata:
